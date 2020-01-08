@@ -93,7 +93,6 @@ import org.jclouds.blobstore.domain.Blob;
 import org.jenkinsci.plugins.workflow.flow.FlowCopier;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProjectTest;
-import org.junit.Ignore;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 
 public class JCloudsArtifactManagerTest extends S3AbstractTest {
@@ -345,23 +344,21 @@ public class JCloudsArtifactManagerTest extends S3AbstractTest {
         assertThat(response.getContentType(), equalTo("text/html"));
     }
 
-    @Ignore("TODO this returns text/plain for me on Linux; seems to be very sensitive to system; any way to mock this out?")
     @Issue("JENKINS-50772")
     @Test
     public void contentTypeUnknown() throws Exception {
-        final String expectedContents = "";
         final String expectedContentType = "binary/octet-stream";
 
         ArtifactManagerConfiguration.get().getArtifactManagerFactories().add(getArtifactManagerFactory(null, null));
 
         WorkflowJob p = j.createProject(WorkflowJob.class, "p");
-        p.setDefinition(new CpsFlowDefinition("node {writeFile file: 'f', text: '" + expectedContents + "'; archiveArtifacts 'f'}", true));
+        p.setDefinition(new CpsFlowDefinition("node {sh 'dd if=/dev/zero of=f bs=1c count=1'; archiveArtifacts 'f'}", true));
         j.buildAndAssertSuccess(p);
 
         String url = "job/p/1/artifact/f";
         WebResponse response = j.createWebClient().goTo(url, null).getWebResponse();
-        assertThat(response.getContentAsString(), equalTo(expectedContents));
         assertThat(response.getContentType(), equalTo(expectedContentType));
+        assertThat(response.getContentLength(), equalTo(1L));
     }
 
     //@Test
